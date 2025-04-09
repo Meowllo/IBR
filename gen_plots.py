@@ -57,6 +57,12 @@ if args.plot == 0:
             'Method': [],
         }
 
+        opt, success_rate, latency = sim.run_strategy(USER_NUM, C_DELTA, C_NUM, strategy="hyper_opt")
+        results['Objective Value'].append(opt)
+        results['Constraints Satisfaction Rate'].append(success_rate)
+        results["Latency"].append(latency)
+        results['Method'].append("HyperOpt")
+
         opt, success_rate, latency = sim.run_strategy(USER_NUM, C_DELTA, C_NUM, strategy="ip")
         results['Objective Value'].append(opt)
         results['Constraints Satisfaction Rate'].append(success_rate)

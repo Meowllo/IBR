@@ -6,6 +6,8 @@ from multi_bisect_cpp import multi_bisect_cpp
 import time
 from tqdm import tqdm
 import pandas as pd
+from hyperopt import hp
+from hyperopt import fmin, tpe, space_eval
 
 class Simulator:
     def __init__(self, data, n, k, consume_lambdas):
@@ -28,6 +30,7 @@ class Simulator:
             "sub_grad": self._sub_gradient,
             "bisect": self._bisect,
             "bisect_cpp": self._bisect_cpp,
+            "hyper_opt": self.hyper_opt,
         }
         self._user_states = None
         self._tscac_agent = None
@@ -133,7 +136,6 @@ class Simulator:
         return topk
     
     def _bisect(self, data, constraints, lb=0, ub=1, epsilon=0.001, max_loop=4, max_iteration=0, verbose=False, return_log=False, return_loop_log=False):
-        # 二分
         k = self.K
         lambdas = [0 for _ in range(len(constraints))]
         iter = 0
@@ -186,7 +188,6 @@ class Simulator:
         return multi_bisect_cpp(data, self.N, self.K, constraints, lb, ub, epsilon, max_loop, verbose)
 
     def _sub_gradient(self, data, constraints, max_steps=10000, early_stop=100, step_size=2, verbose=False):
-        # 次梯度下降
         lambdas = [1] + self.consume_lambdas
         lambdas = lambdas[:len(constraints)+1]
         best_opt = 0
@@ -231,4 +232,29 @@ class Simulator:
             print(best_step, best_opt, best_lambdas)
         if not best_topk:
             return heapq.nlargest(self.K, data, key=lambda x: sum([x[i] * lambdas[i] for i in range(1, len(lambdas))]))
+        return best_topk
+
+    def hyper_opt(self, data, constraints, max_steps=100, penalty_coeff=20):
+        # 
+        def obj(lambdas):
+            topk = heapq.nlargest(self.K, data, key=lambda x: sum([x[i] * lambdas[f'x{i}'] for i in range(len(lambdas))]))
+            obj_value = sum([topk[i][0] for i in range(self.K)]) + sum([
+                min(0, sum([topk[i][ci+1] for i in range(self.K)]) - constraints[ci]) * penalty_coeff 
+                for ci in range(len(lambdas))
+            ])
+            return -obj_value
+
+        search_space = {
+            f'x{i}': hp.uniform(f'x{i}', 0, 1)
+            for i in range(len(constraints))
+        }
+
+        best = fmin(
+            fn=obj,
+            space=search_space,
+            algo=tpe.suggest,
+            max_evals=max_steps,
+            show_progressbar=False
+        )
+        best_topk = heapq.nlargest(self.K, data, key=lambda x: sum([x[i] * best[f'x{i}'] for i in range(len(best))]))
         return best_topk
