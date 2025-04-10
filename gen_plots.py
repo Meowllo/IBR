@@ -93,6 +93,12 @@ if args.plot == 0:
         results["Latency"].append(latency)
         results['Method'].append("WS(0.8)")
 
+        opt, success_rate, latency = sim.find_boost(USER_NUM, C_DELTA, C_NUM, strategy="add_boost", min_success_rate=0.9)
+        results['Objective Value'].append(opt)
+        results['Constraints Satisfaction Rate'].append(success_rate)
+        results["Latency"].append(latency)
+        results['Method'].append("WS(HyperOpt)")
+
         opt, success_rate, latency = sim.find_boost(USER_NUM, C_DELTA, C_NUM, strategy="mul_boost", min_success_rate=0.9)
         results['Objective Value'].append(opt)
         results['Constraints Satisfaction Rate'].append(success_rate)
@@ -104,6 +110,12 @@ if args.plot == 0:
         results['Constraints Satisfaction Rate'].append(success_rate)
         results["Latency"].append(latency)
         results['Method'].append("WM(0.8)")
+
+        opt, success_rate, latency = sim.find_boost(USER_NUM, C_DELTA, C_NUM, strategy="add_boost", min_success_rate=0.9)
+        results['Objective Value'].append(opt)
+        results['Constraints Satisfaction Rate'].append(success_rate)
+        results["Latency"].append(latency)
+        results['Method'].append("WM(HyperOpt)")
 
         tmp = pd.DataFrame(results)
         tmp.to_pickle(f"data/{FILE}_data.pkl")

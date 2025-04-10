@@ -56,7 +56,27 @@ class Simulator:
                 r = m
             
         return best_opt, best_success_rate, best_latency
-        
+    
+    def hyperopt_boost(self, user_num, constraint_delta, constraint_num, strategy, min_success_rate=0.9, lb=0, ub=2, penalty_coeff=20, max_steps=100, verbose=False):
+        assert strategy in ['add_boost', 'mul_boost']
+        def obj(lambdas):
+            opt, success_rate, latency = self.run_strategy(user_num, constraint_delta, constraint_num, strategy, boost=lambdas['m'])
+            obj_value = opt + min(0, success_rate - min_success_rate) * penalty_coeff
+            return -obj_value
+
+        search_space = {
+            'm': hp.uniform('m', lb, ub)
+        }
+        best = fmin(
+            fn=obj,
+            space=search_space,
+            algo=tpe.suggest,
+            max_evals=max_steps,
+            show_progressbar=False
+        )
+
+        return self.run_strategy(user_num, constraint_delta, constraint_num, strategy, boost=best['m'])
+
     # @lru_cache(maxsize=1280)
     def run_strategy(self, user_num, constraint_delta, constraint_num, strategy, **kwargs):
         # 执行策略，输出约束满足率和opt函数值
